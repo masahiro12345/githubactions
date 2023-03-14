@@ -1,23 +1,33 @@
-name: Deploy to Netlify on commits to master
-on:
+name: "ci-cd pipeline"
+
+on: 
   push:
-    branches: [master]
+    branches:
+    - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Checkout repo
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+    - name: Use Node.js 16.x
+      uses: actions/setup-node@v2
+      with:
+        node-version: 16.x
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+    - name: Install dependencies
+      run: npm install 
+    // - name: Run tests
+    // - run: npm test
+    - name: Build file
+      run: npm run build
 
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build site
-        run: npm run build
-
-      # Deploy the site with netlify-cli
-      - name: Deploy Site
-        env:
-          NETLIFY_SITE_ID: $
-          NETLIFY_AUTH_TOKEN: $
-        run: netlify deploy --dir=public --prod
+    // deploy the application to netlify
+    - name: Deploy production to Netlify
+      uses: South-Paw/action-netlify-deploy@v1.2.0
+      with:
+        netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        netlify-site-id: ${{ secrets.NETLIFY_SITE_ID }}
+        build-dir: './build'
+        comment-on-commit: true
