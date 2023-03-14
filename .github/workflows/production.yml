@@ -1,38 +1,23 @@
-name: Netlify Deployment
-
+name: Deploy to Netlify on commits to master
 on:
   push:
-    branches:
-      - main # デプロイを実行するブランチ
-  pull_request:
-    branches:
-      - main # プルリクエストがマージされた時にデプロイを実行するブランチ
-
+    branches: [master]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # Checkout repo
+      - uses: actions/checkout@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm install
 
       - name: Build site
         run: npm run build
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: ./dist # ビルドされたファイルが格納されたディレクトリ
-          deploy-message: "Deploy from GitHub Actions"
-          args: --prod # プロダクション環境にデプロイする
+      # Deploy the site with netlify-cli
+      - name: Deploy Site
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }} # Netlify APIトークン
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }} # NetlifyサイトID
+          NETLIFY_SITE_ID: $
+          NETLIFY_AUTH_TOKEN: $
+        run: netlify deploy --dir=public --prod
