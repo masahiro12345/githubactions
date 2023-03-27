@@ -1,35 +1,62 @@
-# .github/workflows/netlify.yml
-name: Build and Deploy to Netlify
+name: Build
+
 on:
   push:
-  pull_request:
+    branches:
+      - master
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
         with:
-          node-version: 16.x
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      # ( Build to ./dist or other directory... )
+          ref: master
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v1.2
+      - name: Set up Ruby
+        uses: actions/setup-ruby@v1
         with:
-          publish-dir: './dist'
-          production-branch: master
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 1
-        
-        
-        
+          ruby-version: 2.7
+
+      - name: Install Dependencies
+        run: |
+          gem install bundler
+          bundle install
+
+      - name: Create Build
+        run: bundle exec jekyll build -d public
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: public
+          path: public
+
+  commit-build:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repoitory
+        uses: actions/checkout@v2
+        with:
+          ref: website-build
+
+      - name: Configure Git
+        run: |
+          git config --global user.email ${GITHUB_ACTOR}@gmail.com
+          git config --global user.name ${GITHUB_ACTOR}
+
+      - name: Download website build
+        uses: actions/download-artifact@v1
+        with:
+          name: public
+          path: public
+
+      - name: Commit and Push
+        run: |
+          if [ $(git status --porcelain=v1 2>/dev/null | wc -l) != "0" ] ; then
+            git add -f public
+            git commit -m "gh-actions deployed a new website build"
+            git push --force https://${GITHUB_ACTOR}:$@github.com/${GITHUB_REPOSITORY}.git HEAD:website-build
+          fi
